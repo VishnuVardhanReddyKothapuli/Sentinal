@@ -1,6 +1,8 @@
 """One-time script to create the MySQL database and tables."""
 import pymysql
 
+from app.database import init_db
+
 # Connect without specifying a database to create it
 conn = pymysql.connect(
     host="localhost",
@@ -19,6 +21,5 @@ cursor.close()
 conn.close()
 
 # Now let SQLAlchemy create the tables
-from app.database import init_db  # noqa: E402
 init_db()
 print("✅ Tables created successfully.")
