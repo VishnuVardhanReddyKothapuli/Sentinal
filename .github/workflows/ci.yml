@@ -26,6 +26,8 @@ jobs:
       - name: Ruff
         run: ruff check .
       - name: Pytest
+        env:
+          DATABASE_URL: sqlite:///:memory:
         run: pytest
 
   frontend:
