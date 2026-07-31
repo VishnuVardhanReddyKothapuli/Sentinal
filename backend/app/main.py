@@ -10,6 +10,7 @@ from app.config import settings
 from app.database import init_db
 from app.routers import moderate
 from app.services import classifier
+from app.services.chroma_store import init_chroma
 
 # Path to the Vite build output (frontend/dist/).
 FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
@@ -18,6 +19,7 @@ FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "di
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    init_chroma()
     if not settings.lazy_load_models:
         classifier.load_models()
     yield

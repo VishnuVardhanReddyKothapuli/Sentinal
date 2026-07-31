@@ -39,7 +39,7 @@ using cosine similarity; matches above `0.92` report the original uploader.
 ```bash
 # 1. Clone and enter the project
 git clone <repo-url>
-cd nsfw-copyright-moderator/backend
+cd backend
 
 # 2. Create a virtual environment
 python -m venv venv

@@ -1,7 +1,7 @@
 import hashlib
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from sqlalchemy.orm import Session, defer
+from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
@@ -9,6 +9,7 @@ from app.models import MediaHistory
 from app.schemas import DuplicateMatch, HistoryItem, ModerationResult
 from app.services import classifier
 from app.services.duplicate_detector import find_duplicate
+from app.services.chroma_store import add_embedding
 
 router = APIRouter(prefix="/api", tags=["moderation"])
 
@@ -54,8 +55,8 @@ async def moderate(
                 status_code=503, detail=f"Embedding model unavailable: {exc}"
             ) from exc
 
-        existing = db.query(MediaHistory).all()
-        duplicate = DuplicateMatch(**find_duplicate(embedding, existing))
+        # Query ChromaDB for similar embeddings (replaces brute-force scan).
+        duplicate = DuplicateMatch(**find_duplicate(embedding))
 
     stored = False
     existing_hash = (
@@ -69,12 +70,20 @@ async def moderate(
             nsfw_status=nsfw_status,
             nsfw_score=nsfw_score,
             is_nsfw=is_nsfw,
-            embedding=embedding,
             uploaded_by=uploaded_by or "anonymous",
         )
         db.add(record)
         db.commit()
         stored = True
+
+        # Index the embedding in ChromaDB for future similarity searches.
+        if embedding is not None:
+            add_embedding(
+                file_hash,
+                embedding,
+                filename=file.filename or "upload",
+                uploaded_by=uploaded_by or "anonymous",
+            )
 
     return ModerationResult(
         filename=file.filename or "upload",
@@ -92,7 +101,6 @@ async def moderate(
 def history(limit: int = 50, db: Session = Depends(get_db)) -> list[MediaHistory]:
     return (
         db.query(MediaHistory)
-        .options(defer(MediaHistory.embedding))
         .order_by(MediaHistory.created_at.desc())
         .limit(min(limit, 200))
         .all()
