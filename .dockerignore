@@ -1,0 +1,38 @@
+# Ignore version control
+.git
+.github
+
+# Python virtual environments
+backend/venv
+backend/.venv
+backend/__pycache__
+backend/**/__pycache__
+backend/*.pyc
+
+# Node modules (will be installed fresh in Docker)
+frontend/node_modules
+
+# Frontend build output (rebuilt in Docker)
+frontend/dist
+
+# Environment files (secrets — pass via docker run -e)
+backend/.env
+frontend/.env
+
+# IDE / editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# Database files
+backend/*.db
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore

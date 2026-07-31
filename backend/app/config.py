@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     # If true, ML models are lazily loaded; set false to load eagerly at startup.
     lazy_load_models: bool = True
 
+    # ChromaDB vector store for copyright / duplicate detection.
+    chroma_persist_dir: str = "./chroma_data"
+    chroma_collection_name: str = "media_embeddings"
+
 
 @lru_cache
 def get_settings() -> Settings:

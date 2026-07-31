@@ -10,3 +10,4 @@ pillow==12.2.0
 numpy==2.4.6
 python-multipart==0.0.32
 python-dotenv==1.2.2
+chromadb
