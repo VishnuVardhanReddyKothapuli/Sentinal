@@ -1,1 +1,14 @@
-export default function MetricCard({label,value,icon:Icon,caption}){return <article className="metric-card"><div className="metric-label">{label}<Icon size={17}/></div><div className="metric-value">{typeof value==='number'?value.toLocaleString():'—'}</div><p>{caption}</p></article>;}
+export default function MetricCard({ label, value, icon: Icon, caption }) {
+  return (
+    <article className="metric-card">
+      <div className="metric-label">
+        <span>{label}</span>
+        <Icon size={17} />
+      </div>
+      <div className="metric-value">
+        {typeof value === 'number' ? value.toLocaleString() : '—'}
+      </div>
+      <p>{caption}</p>
+    </article>
+  );
+}
