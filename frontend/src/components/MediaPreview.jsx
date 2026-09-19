@@ -1,0 +1,4 @@
+import { useEffect, useState } from 'react';
+import { ImageOff } from 'lucide-react';
+import { api } from '../api';
+export default function MediaPreview({recordId,fileType='IMAGE',alt='Analyzed media'}){const [url,setUrl]=useState(null);const [error,setError]=useState(false);useEffect(()=>{let active=true,objectUrl;setUrl(null);setError(false);api.get(`/media/${recordId}`,{responseType:'blob'}).then(r=>{if(active){objectUrl=URL.createObjectURL(r.data);setUrl(objectUrl);}}).catch(()=>{if(active)setError(true);});return()=>{active=false;if(objectUrl)URL.revokeObjectURL(objectUrl);};},[recordId]);if(error)return <div className="media-unavailable"><ImageOff size={22}/><span>Preview unavailable</span></div>;if(!url)return <div className="media-unavailable" role="status">Loading preview…</div>;return fileType==='VIDEO'?<video src={url} controls preload="metadata" aria-label={alt}/>:<img src={url} alt={alt}/>;}

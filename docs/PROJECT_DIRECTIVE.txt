@@ -1,0 +1,100 @@
+Project Master Directive: Sentinel (AI-Powered Content Moderation & Similarity Engine)Role: Engineering Team Lead & Technical ArchitectObjective: Orchestrate the development of Sentinel, an enterprise-grade content safety and visual similarity platform designed to analyze images and videos for safety risks, extract and evaluate embedded text, compute perceptual similarity, and output natural-language explainability reports.1. System Architecture & Tech Stack                                  +---------------------------------------+
+                                  |         React 18 + Tailwind CSS       |
+                                  |    (Vite, Lucide, Chart.js, Axios)    |
+                                  +-------------------+-------------------+
+                                                      |  REST / JWT
+                                                      v
+                                  +---------------------------------------+
+                                  |            FastAPI Gateway            |
+                                  |      (Auth, Validation, Routing)      |
+                                  +---------+-------------------+---------+
+                                            |                   |
+                     +----------------------+                   +---------------------+
+                     v                                                                v
++------------------------------------------+                      +------------------------------------------+
+|          Relational Persistence          |                      |              Vector Engine               |
+|      MySQL 8.0 (Users, Logs, Audit)      |                      |  Qdrant / Milvus (CLIP 512d Embeddings)  |
++------------------------------------------+                      +------------------------------------------+
+                     ^                                                                ^
+                     |                                                                |
+                     +----------------------+                   +---------------------+
+                                            |                   |
+                                  +---------+-------------------+---------+
+                                  |            AI Inference Core          |
+                                  | - Falconsai NSFW Classifier           |
+                                  | - Tesseract OCR + Text Safety Lexicon |
+                                  | - OpenCLIP (ViT-B/32) Video/Image    |
+                                  | - Google Gemini 1.5/2.0 Flash Vision  |
+                                  +---------------------------------------+
+DomainSelected TechnologiesPrimary ResponsibilitiesFrontendReact 18 (Vite), Tailwind CSS, Lucide React, Headless UI, AxiosResponsive dashboards, file upload pipelines, score visualizers, history views.Backend APIPython 3.11+, FastAPI, Uvicorn, Pydantic v2Endpoint orchestration, asynchronous queueing, authentication, file processing.Relational DBMySQL 8.0 with SQLAlchemy 2.0 & AlembicUser credentials, role assignments, analysis metadata, audit trails.Vector DBQdrant / ChromaDBMultimodal vector storage, cosine similarity indexing for deduplication.AI Vision EngineHugging Face Falconsai/nsfw_image_detection, CLIP (ViT-B/32)Visual safety multi-label scoring, frame-level video analysis, semantic vectorization.OCR & NLPTesseract OCR (pytesseract), Python NLP RegEx/Rule FilterExtracting embedded typography, flagging offensive slogans and toxic phrases.ExplainabilityGoogle Gemini API (gemini-1.5-flash or gemini-2.5-flash)Contextual reasoning and narrative synthesis of flagged visual elements.2. Database Schema Definition (MySQL)SQLCREATE DATABASE IF NOT EXISTS sentinel_db;
+USE sentinel_db;
+
+CREATE TABLE users (
+    id VARCHAR(36) PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
+    role ENUM('USER', 'ADMIN') DEFAULT 'USER',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE analysis_records (
+    id VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_type ENUM('IMAGE', 'VIDEO') NOT NULL,
+    file_url VARCHAR(500) NOT NULL,
+    analysis_type ENUM('NSFW', 'SIMILARITY', 'COMBINED') NOT NULL,
+    
+    -- Safety Metrics (Percentages 0.00 to 100.00)
+    score_safe DECIMAL(5, 2) DEFAULT 0.00,
+    score_explicit DECIMAL(5, 2) DEFAULT 0.00,
+    score_suggestive DECIMAL(5, 2) DEFAULT 0.00,
+    score_gore DECIMAL(5, 2) DEFAULT 0.00,
+    
+    -- OCR Results
+    extracted_text TEXT NULL,
+    text_flagged BOOLEAN DEFAULT FALSE,
+    text_flag_reason VARCHAR(255) NULL,
+    
+    -- Similarity
+    vector_id VARCHAR(64) NULL,
+    is_duplicate BOOLEAN DEFAULT FALSE,
+    matched_record_id VARCHAR(36) NULL,
+    similarity_score DECIMAL(5, 2) DEFAULT 0.00,
+    
+    -- Explainability
+    ai_explanation TEXT NULL,
+    overall_status ENUM('SAFE', 'FLAGGED', 'REVIEW') DEFAULT 'SAFE',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE platform_metrics (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    metric_key VARCHAR(50) UNIQUE NOT NULL,
+    metric_value BIGINT DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+3. Agent Task DelegationsAgent 1: UI/UX DesignerTheme: Dark cyber-defense aesthetic (slate-950 background, high-contrast borders slate-800, electric cyan cyan-500, and warning crimson rose-500 accents).Deliverables:High-fidelity layouts for 6 distinct screens:Landing: Hero section with the motto "Intelligent Defense Against Unbounded Content", animated stat counters, and feature breakdown cards.Auth View: Clean card interface with seamless toggling between Login and Registration.NSFW Analyzer: Split-screen layout (Upload area on left; radial dials, OCR badge list, and Gemini narrative card on right).Similarity Checker: Side-by-side comparison pane showing source upload vs. top vector match with percentage match pill.Combined Portal: Unified cockpit containing safety dial, match notification, and unified assessment breakdown.Account History & Admin Control: Tabulated views with responsive column filtering, status tags (SAFE, FLAGGED, REVIEW), and deletion modals.Agent 2: Frontend Developer (frontend-dev)Environment: React 18, Vite, Tailwind CSS, Axios, React Router Dom.Component Architecture:src/components/common/: Navbar.jsx, Sidebar.jsx, MetricCard.jsx, ConfidenceMeter.jsx, ProtectedRoutes.jsx.src/pages/:Home.jsx: Consumes /api/v1/metrics/public for live counters.Login.jsx: Handles user ID/password JWT token acquisition and sets state into localStorage.NsfwAnalyzer.jsx: Drag-and-drop file upload with live progress bar and dynamic score rendering.SimilarityChecker.jsx: Visualizes matched images, similarity metrics, and metadata.CombinedChecker.jsx: Simultaneous pipeline trigger.History.jsx: Account-scoped historical logs with pagination and detail drill-down modal.AdminDashboard.jsx: Role-guarded route (role === 'ADMIN') listing platform-wide analytics, bulk purging, and system logs.Agent 3: AI & Computer Vision Engineer (ai-engineer)Environment: PyTorch, Hugging Face transformers, torchvision, pytesseract, google-generativeai, qdrant-client, opencv-python.Pipeline Implementation:NSFW Classification:Load Falconsai/nsfw_image_detection pipeline.Implement an auxiliary multi-head or zero-shot CLIP classifier fallback to generate the 4-tier distribution: Safe, Explicit, Suggestive, Gore.Video Frame Extraction:Process video files using OpenCV. Sample 1 frame per second (FPS), cap at 60 sampled frames.Aggregate worst-case frame score as the primary video risk indicator.In-Picture Text OCR & Content Evaluation:Run pytesseract.image_to_string() on images and sampled keyframes.Cross-reference extracted text against a profanity/hate-speech lexicon using pattern matching.Vector Embeddings & Similarity:Generate 512-dimensional normalized embeddings via sentence-transformers/clip-ViT-B-32.Store and query vectors in Qdrant collections (sentinel_embeddings).Set cosine distance threshold: >= 0.88 triggers duplicate status; >= 0.70 triggers near-match flag.Explainability Engine (Gemini API):Invoke Gemini multimodal API (gemini-1.5-flash or gemini-2.5-flash).Provide prompt: "You are an automated trust and safety officer. Analyze this image/frame and the calculated safety signals (NSFW: {scores}, OCR Text: '{text}'). Write a concise, 2-to-3 sentence factual explanation detailing why this content is deemed safe or flagged."Agent 4: Backend Developer (backend-dev)Environment: Python 3.11+, FastAPI, SQLAlchemy, Alembic, MySQL Connector, PyJWT, Passlib (Argon2 / Bcrypt).API Endpoints:POST /api/v1/auth/register & POST /api/v1/auth/login: Standard authentication returning JWT bearers.GET /api/v1/metrics/public: Returns total platform scans, flagged count, and registered users for the home page.POST /api/v1/analyze/nsfw: Accepts multipart/form-data (image/video). Calls AI inference, logs result to MySQL under current_user.id, updates counters, and responds with score object + explanation.POST /api/v1/analyze/similarity: Accepts media, computes CLIP vector, queries vector DB, and returns similarity matches with explanations.POST /api/v1/analyze/combined: Runs safety classification, OCR, and vector similarity concurrently via asyncio.gather.GET /api/v1/user/history: Returns records where user_id == current_user.id.GET /api/v1/admin/overview: Guarded by require_admin dependency; exposes all user records, aggregate telemetry, and system controls.4. Documentation Protocol: IMPLEMENTATION.mdEvery development agent must append updates to a root-level IMPLEMENTATION.md file following this exact template:Markdown# Sentinel Project Implementation Log
+
+## Phase Status Overview
+- [ ] Phase 1: Database Setup & Authentication Scaffold
+- [ ] Phase 2: AI Pipeline & Model Integration
+- [ ] Phase 3: Core API Endpoints Development
+- [ ] Phase 4: Frontend Development & State Management
+- [ ] Phase 5: Role-Based Admin Panel & Verification
+
+---
+
+## Task Execution Log
+
+### [YYYY-MM-DD] Agent: <Agent Name>
+- **Completed Module:** <Module Name>
+- **Files Modified/Created:**
+  - `path/to/file1.py`
+  - `path/to/file2.jsx`
+- **Technical Decisions & Trade-offs:** <Details>
+- **Testing Verification:** <Test cases run and outputs>
+- **Next Dependencies:** <Next agent handoff notes>
+5. Execution Order for Dev AgentsStep 1 (Backend & DB): Run MySQL migrations and set up user auth schemas with JWT validation and RBAC.Step 2 (AI Engine): Create a standalone ai_engine/ module encapsulating Falconsai, Tesseract, CLIP embedding extraction, Qdrant client connection, and Gemini API inference.Step 3 (API Integration): Connect FastAPI controllers to the AI engine with error handling and background cleanup of temporary media files.Step 4 (Frontend UI): Build React views with Tailwind styling, integrate file dropzones, configure Axios interceptors for JWT injection, and render score cards and explanation blocks.Step 5 (Admin & Verification): Implement admin telemetry endpoints, verify account history isolation, and conduct end-to-end integration tests on both image and video uploads.

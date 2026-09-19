@@ -1,0 +1,9 @@
+# Install alongside requirements.txt with Python 3.11 or 3.12 for supported Torch wheels.
+# Model weights download on first request only after ENABLE_AI_MODELS=true.
+torch>=2.5,<3
+torchvision>=0.20,<1
+transformers>=4.48,<5
+open-clip-torch>=2.30,<4
+pytesseract>=0.3.13,<1
+qdrant-client>=1.13,<2
+google-genai>=1.0,<2
