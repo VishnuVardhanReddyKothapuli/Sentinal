@@ -2,7 +2,7 @@ fastapi>=0.115,<1
 uvicorn[standard]
 SQLAlchemy>=2.0.38,<3
 alembic>=1.14,<2
-PyMySQL[rsa]>=1.1,<2
+qdrant-client>=1.13,<2
 PyJWT>=2.10,<3
 argon2-cffi>=23.1,<26
 pydantic-settings>=2.8,<3

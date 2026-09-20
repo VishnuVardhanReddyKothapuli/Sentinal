@@ -3,6 +3,7 @@
 import os
 import threading
 import uuid
+from pathlib import Path
 from contextlib import contextmanager
 
 _COLLECTION_LOCK = threading.Lock()
@@ -14,16 +15,14 @@ def _client():
     url = os.getenv("QDRANT_URL")
     if url:
         return QdrantClient(url=url, api_key=os.getenv("QDRANT_API_KEY") or None, timeout=15)
-    local_path = os.getenv("QDRANT_LOCAL_PATH")
-    if local_path:
-        return QdrantClient(path=local_path)
-    raise RuntimeError("Configure QDRANT_URL or QDRANT_LOCAL_PATH")
+    local_path = os.getenv("QDRANT_LOCAL_PATH") or str(Path(os.getenv("DATA_DIR", "data")) / "qdrant")
+    return QdrantClient(path=local_path)
 
 
 @contextmanager
 def _connection():
-    # Local Qdrant permits one open client per storage directory. Serialize the
-    # full operation, including close, across analysis and deletion threads.
+    # ponytail: one process and a global lock for embedded Qdrant; use a server
+    # before scaling to multiple workers or backend replicas.
     with _COLLECTION_LOCK:
         client = _client()
         try:

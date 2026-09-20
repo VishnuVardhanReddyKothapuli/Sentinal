@@ -1,8 +1,16 @@
-import { Menu, ShieldCheck, ArrowUpRight, ChevronRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Menu, Moon, Sun, ShieldCheck, ArrowUpRight, ChevronRight } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth';
 
 export default function Navbar({ onMenu, health }) {
+  const [dark, setDark] = useState(() => document.documentElement.dataset.theme === 'dark');
+  useEffect(() => {
+    const theme = dark ? 'dark' : 'light';
+    document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#080809' : '#f5f5f7');
+    try { localStorage.setItem('sentinel-theme', theme); } catch { /* Storage may be disabled. */ }
+  }, [dark]);
   const { user } = useAuth();
   const location = useLocation();
   const section = location.pathname.startsWith('/analyze')
@@ -26,6 +34,11 @@ export default function Navbar({ onMenu, health }) {
         <strong>{section}</strong>
       </div>
       <div className="top-actions">
+        <button type="button" className="theme-switch" aria-label="Black theme" aria-pressed={dark} onClick={() => setDark(!dark)} title={dark ? 'Switch to white theme' : 'Switch to black theme'}>
+          {dark ? <Moon size={15} /> : <Sun size={15} />}
+          <span>{dark ? 'Black' : 'White'}</span>
+          <span className="theme-switch-track" aria-hidden="true"><span /></span>
+        </button>
         <span className={`connection ${health ? 'online' : ''}`}>
           <span className="status-dot" />
           <span>{health ? 'API Connected' : 'API Standby'}</span>

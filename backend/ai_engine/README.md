@@ -6,10 +6,10 @@
 
 | Variable | Default / purpose |
 |---|---|
-| `ENABLE_AI_MODELS` | `false`; set `true` to allow loading/downloading Falconsai and OpenCLIP weights on first use |
+| `ENABLE_AI_MODELS` | `true`; loads/downloads Falconsai and OpenCLIP weights on first use. Set `false` for explicit degraded operation. |
 | `QDRANT_URL` | Unset; e.g. `http://localhost:6333` |
 | `QDRANT_API_KEY` | Database API key for a remote Qdrant server; not used by local storage |
-| `QDRANT_LOCAL_PATH` | Optional persistent local storage directory, e.g. `data/qdrant`; used only when `QDRANT_URL` is empty. Single backend process only. |
+| `QDRANT_LOCAL_PATH` | Defaults to `DATA_DIR/qdrant` (`data/qdrant` locally); used when `QDRANT_URL` is empty. Single backend process only. |
 | `HF_HOME` | Model download/cache directory, e.g. `data/models` from the backend working directory |
 | `GEMINI_API_KEY` | Optional; when set, the representative frame and up to 3,000 OCR characters are sent to Google's Gemini service for explanation |
 | `GEMINI_MODEL` | `gemini-3.6-flash`, replace with a model available to your account |

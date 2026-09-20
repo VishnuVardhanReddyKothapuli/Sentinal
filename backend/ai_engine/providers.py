@@ -18,7 +18,7 @@ def installed(module: str) -> bool:
 
 
 def enabled() -> bool:
-    return os.getenv("ENABLE_AI_MODELS", "false").lower() in ("1", "true", "yes")
+    return os.getenv("ENABLE_AI_MODELS", "true").lower() in ("1", "true", "yes")
 
 
 def get_capabilities() -> dict:
@@ -30,8 +30,8 @@ def get_capabilities() -> dict:
         "gore": enabled() and installed("open_clip") and installed("torch"),
         "ocr": installed("pytesseract") and bool(shutil.which(os.getenv("TESSERACT_CMD", "tesseract"))),
         "embeddings": enabled() and installed("open_clip") and installed("torch"),
-        "vector_search": bool(os.getenv("QDRANT_URL") or os.getenv("QDRANT_LOCAL_PATH")) and installed("qdrant_client"),
-        "vector_storage": "server" if os.getenv("QDRANT_URL") else "local" if os.getenv("QDRANT_LOCAL_PATH") else "unconfigured",
+        "vector_search": installed("qdrant_client"),
+        "vector_storage": "server" if os.getenv("QDRANT_URL") else "local",
         "gemini": bool(os.getenv("GEMINI_API_KEY")) and installed("google.genai"),
         "video": installed("cv2"),
         "readiness_is_configuration_only": True,

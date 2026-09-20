@@ -161,6 +161,22 @@ def test_health_reports_actual_capabilities(client):
     assert response.json()['capabilities']['nsfw'] is False
 
 
+def test_sqlite_default_follows_data_directory(tmp_path, monkeypatch):
+    from sqlalchemy import inspect
+    from app.database import create_database
+    from app.models import Base
+
+    monkeypatch.setenv('DATABASE_URL', '')
+    settings = Settings(data_dir=tmp_path)
+    engine, _ = create_database(settings.database_url)
+    try:
+        Base.metadata.create_all(engine)
+        assert (tmp_path / 'sentinel.db').is_file()
+        assert 'users' in inspect(engine).get_table_names()
+    finally:
+        engine.dispose()
+
+
 def test_foreign_similarity_matches_are_filtered(client, monkeypatch):
     alice, _ = register(client)
     bob, _ = register(client, 'bob')

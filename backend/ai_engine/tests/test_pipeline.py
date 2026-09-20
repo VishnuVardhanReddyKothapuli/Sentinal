@@ -111,7 +111,7 @@ class VectorIsolationTests(unittest.TestCase):
             SimpleNamespace(payload={"user_id": "tenant-b", "record_id": "secret"}, score=0.99),
             SimpleNamespace(payload={"user_id": "tenant-a", "record_id": "old"}, score=0.89),
         ])
-        with patch.dict("sys.modules", {"qdrant_client": SimpleNamespace(models=models)}), patch.object(vectors, "_client", return_value=fake_client):
+        with patch.dict(os.environ, {"QDRANT_URL": ""}), patch.dict("sys.modules", {"qdrant_client": SimpleNamespace(models=models)}), patch.object(vectors, "_client", return_value=fake_client):
             matches, _ = vectors.search_and_store([1.0] + [0.0] * 511, "tenant-a", "new")
             self.assertEqual([row["record_id"] for row in matches], ["old"])
             filters = fake_client.query_points.call_args.kwargs["query_filter"]

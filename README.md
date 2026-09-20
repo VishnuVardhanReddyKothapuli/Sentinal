@@ -11,8 +11,10 @@ An image and video moderation workspace built from the supplied Sentinel project
 - Safety score meters, extracted text, explanations, and private comparison media.
 - Account history with search, status filtering, pagination, detail views, and deletion.
 - Role-protected admin telemetry, audit events, and bulk deletion.
-- Optional Falconsai, OpenCLIP, Tesseract, Qdrant, and Gemini integrations.
-- SQLite local development and a MySQL 8/Qdrant Docker Compose stack.
+- Local Falconsai and OpenCLIP inference, Tesseract OCR, and embedded Qdrant.
+- SQLite for accounts/history, with one backend process and one data directory.
+- Apple-inspired white glass interface with a persistent black theme switch.
+- React deployment on Vercel and a FastAPI Docker image for Hugging Face Spaces or Cloud Run.
 
 Missing models or failed analysis stages are reported explicitly. Local development does **not** generate fake safety scores or matches. Content is marked `REVIEW` when the requested safety coverage is incomplete.
 
@@ -69,7 +71,7 @@ backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-ai.txt
 
 Install the Tesseract OCR executable separately and ensure it is on PATH. Configure its path with `TESSERACT_CMD` if needed. Set `ENABLE_AI_MODELS=true` in `.env` to allow model loading; the first analysis downloads model weights and can take several minutes. For GPU acceleration, install a PyTorch build appropriate to your hardware before the AI requirements.
 
-For local development, leave `QDRANT_URL` empty and set `QDRANT_LOCAL_PATH=data/qdrant`. This uses persistent local Qdrant storage and needs no API key or separate server. Run only one backend worker with local storage; use a Qdrant server for multiple workers or production. To use a server instead, set `QDRANT_URL` to its endpoint; the URL takes precedence over local storage. For Google-generated explanations, set `GEMINI_API_KEY`; otherwise the pipeline returns a factual local explanation of its measured signals and missing capabilities. Enabling Gemini sends a selected media frame and analysis context to Google.
+Leave `QDRANT_URL` empty for embedded local Qdrant; no API key or separate vector server is needed. `DATA_DIR` determines the default SQLite, uploaded media, vector storage and model-cache paths. Run one backend worker. Explicit `DATABASE_URL`, `QDRANT_LOCAL_PATH` and `HF_HOME` settings override their defaults. For Google-generated explanations, set `GEMINI_API_KEY`; otherwise the pipeline returns a factual local explanation of its measured signals and missing capabilities. Enabling Gemini sends a selected media frame and analysis context to Google.
 
 Before starting the backend, download/cache the models and verify actual inference with synthetic media:
 
@@ -80,13 +82,13 @@ cd backend
 
 This checks real safety scores, OCR, duplicate matching, account isolation, deletion, and video inference. It uses temporary local vector storage and disables Gemini for the verification process. It does not add records to your account. First-time model downloads can take several minutes; cached weights are reused by the backend. Restart the backend after changing `.env` or installing dependencies.
 
-For Qdrant Cloud: create a cluster at [Qdrant Cloud](https://cloud.qdrant.io), open its **API Keys** tab, and create a **Database API key** with write/manage access. Copy the cluster endpoint into `QDRANT_URL` and the key into `QDRANT_API_KEY` in your private `.env`. This is a database key, not a cloud-management key. See [Qdrant authentication](https://qdrant.tech/documentation/cloud/authentication/). Never put real credentials in `.env.example`.
+An existing remote Qdrant deployment remains supported through `QDRANT_URL` and `QDRANT_API_KEY`, but is not part of the default architecture.
 
 See [the inference guide](backend/ai_engine/README.md) for capabilities, thresholds, model behavior, video limits, and configuration. Model scores require validation against your use case. Short unsafe moments between sampled video frames can be missed.
 
 ## Run the container stack
 
-Requires Docker Engine and Docker Compose. Set private values in `.env.docker` before starting. Use URL-safe characters for `MYSQL_PASSWORD` because it is interpolated into the database URL.
+Requires Docker Engine and Docker Compose. Set a private random `JWT_SECRET` of at least 32 characters in `.env.docker` before starting.
 
 ```powershell
 Copy-Item .env.docker.example .env.docker
@@ -95,7 +97,7 @@ docker compose --env-file .env.docker up --build -d
 docker compose --env-file .env.docker exec backend python -m app.bootstrap_admin --username admin --email admin@example.com
 ```
 
-Open [the containerized interface](http://localhost:8080). MySQL and Qdrant remain on the internal container network. To install heavy models in the backend image, set both `BUILD_AI=true` and `ENABLE_AI_MODELS=true`, then rebuild. Tesseract is included in the backend image. Database migrations run before the API starts; media, model caches, and databases use persistent volumes.
+Open [the containerized interface](http://localhost:8080). The stack contains only the frontend and backend. SQLite, embedded Qdrant, media and model caches live in the backend data volume. AI packages and Tesseract are included by default; the first inference downloads model weights. For a lightweight API-only image, set `BUILD_AI=false` and `ENABLE_AI_MODELS=false` before rebuilding. Database migrations run before the API starts. Existing MySQL data is not automatically converted; see [migration notes](docs/DEPLOYMENT.md#administration-and-existing-data).
 
 Stop the stack without deleting stored data:
 
@@ -113,6 +115,8 @@ Or run `python -m pytest -q` in `backend`, then `npm test` and `npm run build` i
 
 ## Project map
 
+For Vercel, Hugging Face Docker Spaces and Cloud Run settings, see [deployment](docs/DEPLOYMENT.md). Hosted local files are ephemeral; the provided cloud examples are disposable demos. Current [Hugging Face policy](https://huggingface.co/docs/hub/spaces-overview) requires a paid plan to create Docker Spaces even though CPU Basic has no hourly compute charge.
+
 ```text
 backend/app/          Authentication, persistence, API routes and admin CLI
 backend/ai_engine/    Media decoding, safety, OCR, embeddings and explanation
@@ -120,9 +124,8 @@ backend/alembic/      Schema migrations
 backend/tests/        API integration tests
 frontend/src/         React pages, shared controls and API state
 docs/                 Original directive, architecture and API notes
-docker-compose.yml    MySQL, Qdrant, API and frontend services
+docker-compose.yml    API and frontend; one persistent backend data volume
 IMPLEMENTATION.md     Phase tracking and agent execution log
 ```
 
 See [architecture and operational boundaries](docs/ARCHITECTURE.md) and [API routes](docs/API.md). Before deploying publicly, configure HTTPS, private secrets, rate limiting, model validation, backups, a retention policy, and a human review process.
-# Sentinal

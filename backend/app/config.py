@@ -3,6 +3,7 @@ from pathlib import Path
 import secrets
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import model_validator
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parents[1] / '.env', override=False)
@@ -12,7 +13,7 @@ load_dotenv(Path(__file__).resolve().parents[2] / '.env', override=False)
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=('../.env', '.env'), extra='ignore')
 
-    database_url: str = 'sqlite:///./data/sentinel.db'
+    database_url: str = ''
     jwt_secret: str = ''
     jwt_expire_minutes: int = 480
     data_dir: Path = Path('data')
@@ -22,6 +23,12 @@ class Settings(BaseSettings):
     inference_concurrency: int = 1
     auto_create_tables: bool = True
     environment: str = 'development'
+
+    @model_validator(mode='after')
+    def storage_defaults(self):
+        if not self.database_url:
+            self.database_url = f'sqlite:///{(self.data_dir / "sentinel.db").as_posix()}'
+        return self
 
     def signing_key(self) -> str:
         if self.jwt_secret:

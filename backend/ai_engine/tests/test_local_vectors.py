@@ -9,6 +9,22 @@ pytest.importorskip('qdrant_client')
 from ai_engine import vectors
 
 
+def test_local_storage_defaults_to_data_directory(tmp_path, monkeypatch):
+    from ai_engine import providers
+
+    monkeypatch.setenv('QDRANT_URL', '')
+    monkeypatch.delenv('QDRANT_LOCAL_PATH', raising=False)
+    monkeypatch.setenv('DATA_DIR', str(tmp_path))
+    monkeypatch.delenv('ENABLE_AI_MODELS', raising=False)
+    assert providers.enabled()
+    assert providers.get_capabilities()['vector_storage'] == 'local'
+    vector = [1.0] + [0.0] * 511
+    vectors.search_and_store(vector, 'alice', 'original')
+    matches, _ = vectors.search_and_store(vector, 'alice', 'copy')
+    assert matches[0]['record_id'] == 'original'
+    assert (tmp_path / 'qdrant').is_dir()
+
+
 def test_local_persistence_tenant_scope_and_concurrent_access(tmp_path, monkeypatch):
     monkeypatch.setenv('QDRANT_URL', '')
     monkeypatch.setenv('QDRANT_LOCAL_PATH', str(tmp_path / 'vectors'))

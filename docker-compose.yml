@@ -1,51 +1,23 @@
 services:
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_DATABASE: sentinel_db
-      MYSQL_USER: sentinel
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env.docker}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env.docker}
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: [CMD, mysqladmin, ping, -h, localhost]
-      interval: 10s
-      timeout: 5s
-      retries: 15
-    restart: unless-stopped
-
-  qdrant:
-    image: qdrant/qdrant:v1.15.1
-    volumes:
-      - qdrant_data:/qdrant/storage
-    restart: unless-stopped
-
   backend:
     build:
       context: ./backend
       args:
-        INSTALL_AI: ${BUILD_AI:-false}
+        INSTALL_AI: ${BUILD_AI:-true}
     environment:
       ENVIRONMENT: production
-      DATABASE_URL: mysql+pymysql://sentinel:${MYSQL_PASSWORD}@mysql:3306/sentinel_db
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env.docker}
+      PORT: '8000'
       DATA_DIR: /app/data
       AUTO_CREATE_TABLES: 'false'
       CORS_ORIGINS: http://localhost:8080
-      QDRANT_URL: http://qdrant:6333
-      ENABLE_AI_MODELS: ${ENABLE_AI_MODELS:-false}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.6-flash}
-    command: [sh, -c, 'alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000']
+      QDRANT_URL: ''
+      QDRANT_LOCAL_PATH: /app/data/qdrant
+      HF_HOME: /app/data/models
+      ENABLE_AI_MODELS: ${ENABLE_AI_MODELS:-true}
+      INFERENCE_CONCURRENCY: '1'
     volumes:
       - media_data:/app/data
-      - model_cache:/home/sentinel/.cache
-    depends_on:
-      mysql:
-        condition: service_healthy
-      qdrant:
-        condition: service_started
     ports:
       - '127.0.0.1:8000:8000'
     restart: unless-stopped
@@ -59,7 +31,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  mysql_data:
-  qdrant_data:
   media_data:
-  model_cache:
