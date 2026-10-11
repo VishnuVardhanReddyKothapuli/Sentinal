@@ -1,6 +1,6 @@
-# Sentinel
+# Sentinal
 
-**Intelligent Defense Against Unbounded Content.**
+**A Safety Gateway Platform.**
 
 An image and video moderation workspace built from the supplied Sentinel project directive. React 18, Vite, Tailwind, Lucide, Chart.js, and Axios power the frontend; FastAPI, SQLAlchemy, JWT authentication, and Alembic power the API.
 
