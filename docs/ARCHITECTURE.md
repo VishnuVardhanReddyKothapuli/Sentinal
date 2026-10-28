@@ -1,4 +1,4 @@
-# Sentinel architecture
+# Sentinal architecture
 
 ```text
 Vercel: React / Vite frontend

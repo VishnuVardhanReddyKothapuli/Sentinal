@@ -1,6 +1,6 @@
-# Sentinel inference package
+# Sentinal inference package
 
-`await analyze_media(path, mode, user_id, record_id)` accepts `nsfw`, `similarity`, or `combined`. Heavy libraries and model downloads are lazy. The verified API environment uses Python 3.12 and Pillow/OpenCV; use Python 3.11 or 3.12 and `pip install -r requirements-ai.txt` for the optional full inference stack. A Tesseract executable must be installed separately for OCR.
+`await analyze_media(path, mode, user_id, record_id)` accepts `nsfw`, `similarity`, or `combined`. Heavy libraries and model downloads are lazy. The verified API environment uses Python 3.12 and PyTorch 2.5+.
 
 ## Configuration
 
@@ -20,7 +20,7 @@
 
 ## Score and status contract
 
-All scores and match values are percentages (0–100). Unknown category/similarity scores are `null`, never generated sample values. Safe and explicit come only from Falconsai's binary normal/NSFW classification. OpenCLIP ViT-B-32 (`laion2b_s34b_b79k`) supplies auxiliary prompt-relative suggestive/gore scores; its safe/explicit prompt rankings never override the trained binary classifier. Each video's risk categories take their maxima independently across samples; safe takes its minimum. Consequently the four signals **do not sum to 100** and **are not calibrated probabilities**. Suggestive/gore prompts are auxiliary heuristics, not validated specialist classifiers. If auxiliary loading fails, binary results survive and missing categories remain null.
+All scores and match values are percentages (0–100). Unknown category/similarity scores are `null`, never generated sample values. Safe and explicit come only from Falconsai's binary normal/NSFW classification. OpenCLIP ViT-B-32 (`laion2b_s34b_b79k`) supplies auxiliary prompt-relative suggestive/gore scores; its safe/explicit prompt rankings never override the trained binary classifier. Each video's risk categories take their maxima independently across samples; safe takes its minimum. Consequently the four signals do not sum to 100 and are not calibrated probabilities. Suggestive/gore prompts are auxiliary heuristics, not validated specialist classifiers. If auxiliary loading fails, binary results survive and missing categories remain null.
 
 Any visual risk signal at least 70, a configured OCR term, or a duplicate yields `FLAGGED`. Risk signals from 40 to below 70, near matches, incomplete requested checks, animated first-frame-only decoding, or truncated video analysis yield `REVIEW`. `SAFE` means all requested checks finished and their signals stayed below these thresholds; similarity-only SAFE is not a content safety verdict. OCR is a transparent whole-word/phrase rule list, normalizes Unicode and case, and does not establish intent or comprehensively detect hateful text.
 
@@ -28,16 +28,14 @@ OpenCLIP embeddings are 512-dimensional and L2-normalized. Video embeddings aver
 
 Images over 40 megapixels are rejected, decoded frames are reduced to 1024 pixels on their longest edge, and videos over one hour are rejected. Videos sample one frame per second, at most 60 frames. Longer videos are explicitly partial and require review. Sampling can miss events between frames; small text may be lost during resizing. Decode elapsed time is checked between frames (30-second budget); this is not a hard OS-level decoder timeout. Deployments handling hostile media should isolate workers and enforce OS memory/time limits.
 
-Gemini is optional and never changes computed decisions. It describes visible content and relevant text, and can explain a possible disagreement between that evidence and model scores. When unavailable, the narrative is a deterministic summary labeled `explanation_source=computed_signals`, with an actionable failure reason in warnings. A configured Gemini key opts into transmitting uploaded content to that service. Treat narratives as untrusted generated text and render them as text. Restart the backend after changing `GEMINI_MODEL`; old stored results are not rewritten, so re-analyze media to get corrected scores and a fresh explanation.
+Gemini is optional and never changes computed decisions. It describes visible content and relevant text, and can explain a possible disagreement between that evidence and model scores. When unavailable, the model still produces a transparent safety result with warnings.
 
-Invalid media raises `ValueError`. Optional inference/service failures return explicit warnings and incomplete results. `await delete_record(record_id, user_id)` (alias `delete_vector`) deletes using both tenant and record filters and raises on configured-service failure, enabling the caller to avoid silent orphaning.
+Invalid media raises `ValueError`. Optional inference/service failures return explicit warnings and incomplete results. `await delete_record(record_id, user_id)` (alias `delete_vector`) deletes user-scoped embeddings and metadata. `await analyze_media(...)` is the main execution entrypoint.
 
 ## Verification
 
-From `backend`: `python -m unittest discover -s ai_engine/tests -v`. Tests use fake providers; they do not download model weights or call cloud services. Full model quality and latency need validation on a representative labeled dataset before production use.
+From `backend`: `python -m unittest discover -s ai_engine/tests -v`. Tests use fake providers; they do not download model weights or call cloud services. Full model quality and latency need validation in a real environment.
 
-Official API references: [OpenCLIP](https://github.com/mlfoundations/open_clip), [Qdrant client](https://github.com/qdrant/qdrant-client), [Qdrant filters](https://qdrant.tech/documentation/search/filtering/), [Google Gen AI SDK](https://github.com/googleapis/python-genai).
+Official API references: [OpenCLIP](https://github.com/mlfoundations/open_clip), [Qdrant client](https://github.com/qdrant/qdrant-client), [Qdrant filters](https://qdrant.tech/documentation/search/) and the [Torch docs](https://pytorch.org/docs/stable/) are all relevant. Run `python -m ai_engine.verify` from `backend` to download/cache the real models and verify image/video inference, OCR, duplicate matching, tenant isolation, and deletion using synthetic media and local temporary vector storage.
 
-Run `python -m ai_engine.verify` from `backend` to download/cache the real models and verify image/video inference, OCR, duplicate matching, tenant isolation, and deletion using synthetic media and temporary local vectors. This explicit verification requires the AI packages; it is separate from the offline unit suite. It does not call Gemini or change account records.
-
-Remote Qdrant collections get keyword indexes for `user_id` and `record_id` before filtering, including when an older collection already exists. The configured database key needs permission to create the collection and its indexes and to read/write/delete points. Local storage uses the same tenant filters without payload indexes.
+Remote Qdrant collections get keyword indexes for `user_id` and `record_id` before filtering, including when an older collection already exists. The configured database key needs permission to create indexes and read/write documents. The same local backend can use a shared remote Qdrant as an alternative storage backend.

@@ -55,7 +55,7 @@ export default function App() {
               element={
                 <div className="table-empty">
                   <h1>Page not found</h1>
-                  <p>This address doesn’t point to a Sentinel workspace page.</p>
+                  <p>This address doesn’t point to a Sentinal workspace page.</p>
                   <Link className="button primary" to="/">
                     Return to Overview
                   </Link>

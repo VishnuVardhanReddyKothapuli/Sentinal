@@ -1,4 +1,4 @@
-# Sentinel API
+# Sentinal API
 
 Base path: `/api/v1`. The running API provides its generated OpenAPI specification at `/openapi.json` and interactive reference at `/docs`.
 
